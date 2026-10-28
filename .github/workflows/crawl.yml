@@ -1,0 +1,39 @@
+name: Crawl‑3D‑Print‑News
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # 关键：给bot提交文件权限，之前失败常见原因
+
+jobs:
+  crawl:
+    runs-on: ubuntu‑latest
+    timeout‑minutes: 10
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmmirror.com
+      NPM_CONFIG_FETCH_RETRIES: 3
+      NPM_CONFIG_FETCH_TIMEOUT: 120000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup‑node@v4
+        with:
+          node‑version: 20
+
+      - name: Install dependency
+        run: npm install rss‑parser
+
+      - name: Run crawler
+        run: node crawl.js
+
+      - name: Commit data.json
+        run: |
+          git config --global user.name "github‑actions[bot]"
+          git config --global user.email "github‑actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "auto update news $(date +'%Y‑%m‑%d')" || echo "no new content"
+          git push
